@@ -1,0 +1,7 @@
+{
+  "api_base_url": "http://10.0.2.2:5000/api/v1",
+  "_comment_emulator": "10.0.2.2 is the Android emulator's alias for the host's localhost (iOS used localhost:5000).",
+  "_comment_cms": "A07 — set both `root_android_*` keys for the Posts menu entry to appear. The WebView opens onto <web_origin>/cms/embed/<post_type>/<category>.",
+  "root_android_category_on_host": "news",
+  "root_android_post_type_on_host": "post"
+}

@@ -1,0 +1,32 @@
+name: android-ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+
+      # The quality gate (eng-req): ktlint + detekt + unit tests + Android lint.
+      - name: ./gradlew check
+        run: ./gradlew check --stacktrace
+
+      # Core-agnosticism boundary: plugins depend on :core + declared peers only.
+      - name: dependency boundary check
+        run: ./gradlew dependencyBoundaryCheck --stacktrace

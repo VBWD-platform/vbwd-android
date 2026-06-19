@@ -1,0 +1,22 @@
+{
+  "_comment": "Plugin manifest (offline-first). Same shape as vbwd-ios. Entries are added as plugin modules land (A02+); enable/disable is toggled here or by the backend manifest endpoint (single writer).",
+  "plugins": {
+    "example": {
+      "enabled": true,
+      "version": "1.0.0",
+      "source": "local"
+    },
+    "subscription": {
+      "enabled": true,
+      "version": "1.0.0",
+      "source": "local"
+    },
+    "token-payment": { "enabled": true, "version": "1.0.0", "source": "local" },
+    "stripe-payment": { "enabled": true, "version": "1.0.0", "source": "local" },
+    "invoice-payment": { "enabled": true, "version": "1.0.0", "source": "local" },
+    "cms": { "enabled": true, "version": "0.1.0", "source": "local" },
+    "tarot": { "enabled": true, "version": "1.0.0", "source": "local" },
+    "meinchat": { "enabled": true, "version": "1.1.0", "source": "local" },
+    "meinchat-plus": { "enabled": true, "version": "0.2.0", "source": "local" }
+  }
+}

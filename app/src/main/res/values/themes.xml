@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Window/splash theme only. The real UI is themed in Compose (A03 ports the
+      AppTheme system). A platform parent avoids pulling in the Material XML
+      library we don't otherwise use.
+    -->
+    <style name="Theme.Vbwd" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>

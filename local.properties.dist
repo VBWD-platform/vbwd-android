@@ -1,0 +1,3 @@
+# Copy to `local.properties` (git-ignored) and point sdk.dir at your Android SDK.
+# macOS default:
+sdk.dir=/Users/<you>/Library/Android/sdk

@@ -1,0 +1,13 @@
+{
+  "api_base_url_": "https://vbwd.cc/api/v1",
+  "api_base_url": "http://10.0.2.2:5000/api/v1",
+
+  "tarif_plan_root_cat_slug": "android",
+
+  "_comment_emulator": "10.0.2.2 is the Android emulator's alias for the host's localhost.",
+  "_comment_cms": "A07 — both keys must be set for the Posts menu entry to appear.",
+  "root_android_category_on_host": "news",
+  "root_android_post_type_on_host": "post",
+  "_comment_web": "Split-host dev — fe-user on :8080, backend on :5000. Leave unset in prod single-host.",
+  "web_base_url": "http://10.0.2.2:8080"
+}
