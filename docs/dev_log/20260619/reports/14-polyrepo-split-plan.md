@@ -32,6 +32,20 @@ is **gated on a green `./gradlew check`** (your decision). Dependency mechanism:
 
 Plugin source lives **only** in its own repo — excluded from core and template.
 
+## Two consumer models (both supported)
+1. **Maven (production / CI):** the **template** app and each **plugin** consume
+   `com.vbwd:vbwd-android-core` (and meinchat for meinchat-plus) from **GitHub
+   Packages**. Plugins are agnostic — they only ever depend on core, never on the
+   app. This is how a real downstream app uses the SDK.
+2. **Submodules + composite build (the `vbwd-android` umbrella, dev):** this repo
+   becomes a thin **umbrella** that adds `vbwd-android-core` + every
+   `vbwd-android-<plugin>` as **git submodules** (at `core/`, `plugins/<name>/`)
+   and `includeBuild`s them. Gradle composite-build **substitutes** the
+   `com.vbwd:vbwd-android-*` coordinates with the local submodule builds, so a
+   `git clone --recurse-submodules && ./gradlew check` builds/tests every repo
+   from source — no GitHub Packages round-trip. `tools/make-umbrella-submodules.sh`
+   performs this conversion (after the split repos exist).
+
 ## Groundwork already on disk (carries into the split)
 - `:core/build.gradle.kts` now has **`maven-publish` → GitHub Packages**
   (`com.vbwd:vbwd-android-core`, `release` variant + sources). Publish with
@@ -68,6 +82,8 @@ Plugin source lives **only** in its own repo — excluded from core and template
 tools/create-android-repos.sh
 # 3) Publish core + meinchat so dependent CI can resolve them:
 #    (in vbwd-android-core, on a release tag) ./gradlew :core:publish
+# 4) Convert THIS repo into the submodule umbrella (composite build):
+tools/make-umbrella-submodules.sh
 ```
 
 ## Caveats
