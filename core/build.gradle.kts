@@ -9,7 +9,13 @@ plugins {
     alias(libs.plugins.ktlint)
     alias(libs.plugins.android.junit5)
     alias(libs.plugins.roborazzi)
+    // Publishes the core AAR to GitHub Packages so the (future) standalone
+    // plugin + template repos consume it as `com.vbwd:vbwd-android-core:<ver>`.
+    `maven-publish`
 }
+
+group = "com.vbwd"
+version = "0.1.0"
 
 android {
     namespace = "com.vbwd.core"
@@ -38,6 +44,13 @@ android {
         unitTests {
             isReturnDefaultValues = true
             isIncludeAndroidResources = true
+        }
+    }
+
+    // Expose a single publishable `release` variant (+ sources) for Maven.
+    publishing {
+        singleVariant("release") {
+            withSourcesJar()
         }
     }
 }
@@ -97,4 +110,27 @@ dependencies {
 detekt {
     buildUponDefaultConfig = true
     config.setFrom(rootProject.file("config/detekt/detekt.yml"))
+}
+
+// GitHub Packages publishing. Run `./gradlew :core:publish` with GITHUB_ACTOR +
+// GITHUB_TOKEN (a PAT with write:packages) in the environment — CI sets these.
+publishing {
+    publications {
+        register<MavenPublication>("release") {
+            groupId = "com.vbwd"
+            artifactId = "vbwd-android-core"
+            version = project.version.toString()
+            afterEvaluate { from(components["release"]) }
+        }
+    }
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/dantweb/vbwd-android-core")
+            credentials {
+                username = System.getenv("GITHUB_ACTOR") ?: providers.gradleProperty("gpr.user").orNull
+                password = System.getenv("GITHUB_TOKEN") ?: providers.gradleProperty("gpr.key").orNull
+            }
+        }
+    }
 }
