@@ -42,6 +42,20 @@ echo "$SUBS" | while IFS=: read -r dir repo; do
   git submodule add -f "https://github.com/$OWNER/$repo.git" "$dir"
 done
 
+# 1b) Seed the Android SDK location into each submodule. Composite (includeBuild)
+# submodules are standalone Gradle builds; each reads its OWN local.properties (or
+# ANDROID_HOME) — without it the build fails "SDK location not found". Copy the
+# umbrella's sdk.dir down. local.properties is gitignored (machine-specific), so
+# this is a local convenience, not committed; ANDROID_HOME is the durable option.
+if [ -f local.properties ] && grep -q '^sdk.dir=' local.properties; then
+  sdkdir="$(grep '^sdk.dir=' local.properties | head -1)"
+  echo "$SUBS" | while IFS=: read -r dir repo; do
+    [ -z "$dir" ] && continue
+    printf '%s\n' "$sdkdir" > "$dir/local.properties"
+  done
+  echo ">> seeded submodule local.properties from the umbrella sdk.dir"
+fi
+
 # 2) settings: composite-build every submodule; keep the umbrella app inline.
 cat > settings.gradle.kts <<'EOF'
 pluginManagement {
