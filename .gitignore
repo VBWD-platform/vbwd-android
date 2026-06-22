@@ -28,6 +28,9 @@ out/
 bin/
 !**/src/main/**/bin/
 !**/src/test/**/bin/
+# ...but the repo's own scripts dir at the root is tracked.
+!/bin/
+!/bin/**
 
 ### NetBeans ###
 /nbproject/private/
