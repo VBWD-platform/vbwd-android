@@ -1,6 +1,6 @@
 {
-  "api_base_url_": "https://vbwd.cc/api/v1",
-  "api_base_url": "http://10.0.2.2:5000/api/v1",
+  "api_base_url": "https://vbwd.cc/api/v1",
+  "api_base_url_": "http://localhost:5000/api/v1",
 
   "tarif_plan_root_cat_slug": "android",
 
@@ -9,5 +9,5 @@
   "root_android_category_on_host": "news",
   "root_android_post_type_on_host": "post",
   "_comment_web": "Split-host dev — fe-user on :8080, backend on :5000. Leave unset in prod single-host.",
-  "web_base_url": "http://10.0.2.2:8080"
+  "web_base_url": "http://localhost:8080"
 }
