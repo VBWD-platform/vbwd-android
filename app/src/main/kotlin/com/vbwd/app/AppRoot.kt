@@ -30,7 +30,11 @@ import com.vbwd.core.ui.settings.SettingsScreen
  * [AppShellView] (Dashboard/Profile/Settings + plugin routes) once authenticated.
  */
 @Composable
-fun AppRoot(session: AuthSession, pluginHost: PluginHost, themeManager: ThemeManager) {
+fun AppRoot(
+    session: AuthSession,
+    pluginHost: PluginHost,
+    themeManager: ThemeManager,
+) {
     var booted by remember { mutableStateOf(false) }
     LaunchedEffect(pluginHost) {
         pluginHost.bootstrap()

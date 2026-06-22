@@ -42,11 +42,11 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import javax.inject.Singleton
 
 /**
  * The composition root — the Android port of the iOS `SDKContainer`. The **only**
@@ -59,36 +59,36 @@ import kotlinx.coroutines.launch
 @Module
 @InstallIn(SingletonComponent::class)
 object CoreModule {
+    @Provides
+    @Singleton
+    fun provideAppConfig(
+        @ApplicationContext context: Context,
+    ): AppConfig = AppConfig.load(context)
 
     @Provides
     @Singleton
-    fun provideAppConfig(@ApplicationContext context: Context): AppConfig =
-        AppConfig.load(context)
+    fun provideApiClientConfig(config: AppConfig): ApiClientConfig = ApiClientConfig(baseUrl = config.apiBaseUrl)
 
     @Provides
     @Singleton
-    fun provideApiClientConfig(config: AppConfig): ApiClientConfig =
-        ApiClientConfig(baseUrl = config.apiBaseUrl)
+    fun provideApiClient(config: ApiClientConfig): ApiClient = OkHttpApiClient(config)
 
     @Provides
     @Singleton
-    fun provideApiClient(config: ApiClientConfig): ApiClient =
-        OkHttpApiClient(config)
+    fun provideTokenStore(
+        @ApplicationContext context: Context,
+    ): TokenStore = EncryptedTokenStore(context)
 
     @Provides
     @Singleton
-    fun provideTokenStore(@ApplicationContext context: Context): TokenStore =
-        EncryptedTokenStore(context)
+    fun provideAuthService(
+        client: ApiClient,
+        store: TokenStore,
+    ): AuthService = DefaultAuthService(client, store)
 
     @Provides
     @Singleton
-    fun provideAuthService(client: ApiClient, store: TokenStore): AuthService =
-        DefaultAuthService(client, store)
-
-    @Provides
-    @Singleton
-    fun provideProfileService(client: ApiClient): ProfileService =
-        DefaultProfileService(client)
+    fun provideProfileService(client: ApiClient): ProfileService = DefaultProfileService(client)
 
     /** Shared event bus (A02.3) — AuthSession + plugins emit/subscribe here. */
     @Provides
@@ -110,8 +110,7 @@ object CoreModule {
     /** App-scoped supervisor scope for fire-and-forget work outside any screen. */
     @Provides
     @Singleton
-    fun provideAppScope(): CoroutineScope =
-        CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    fun provideAppScope(): CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     @Provides
     @Singleton
@@ -140,8 +139,10 @@ object CoreModule {
     /** Checkout-source registry seeded with the built-in token-bundle source. */
     @Provides
     @Singleton
-    fun provideCheckoutSourceRegistry(client: ApiClient, cart: Cart): CheckoutSourceRegistry =
-        CheckoutSourceRegistry().apply { register(TokenBundleCheckoutSource(client, cart)) }
+    fun provideCheckoutSourceRegistry(
+        client: ApiClient,
+        cart: Cart,
+    ): CheckoutSourceRegistry = CheckoutSourceRegistry().apply { register(TokenBundleCheckoutSource(client, cart)) }
 
     /** Notifications seam (A04.5) — token relay + badge; plugins register sinks. */
     @Provides
@@ -151,29 +152,34 @@ object CoreModule {
     /** Compiled-in plugins the host bundles (the available-plugins list). */
     @Provides
     @Singleton
-    fun provideAvailablePlugins(appConfig: AppConfig, authSession: AuthSession): List<Plugin> = listOf(
-        ExamplePlugin(),
-        SubscriptionPlugin(),
-        TokenPaymentPlugin(),
-        StripePaymentPlugin(),
-        InvoicePaymentPlugin(),
-        CmsPlugin(
-            postType = appConfig.rootPostTypeOnHost,
-            category = appConfig.rootCategoryOnHost,
-            webOrigin = appConfig.webOrigin,
-            archiveUrl = appConfig.cmsArchiveUrl,
-            tokenProvider = { authSession.accessToken },
-        ),
-        TarotPlugin(),
-        MeinChatPlugin(),
-        MeinChatPlusPlugin(),
-    )
+    fun provideAvailablePlugins(
+        appConfig: AppConfig,
+        authSession: AuthSession,
+    ): List<Plugin> =
+        listOf(
+            ExamplePlugin(),
+            SubscriptionPlugin(),
+            TokenPaymentPlugin(),
+            StripePaymentPlugin(),
+            InvoicePaymentPlugin(),
+            CmsPlugin(
+                postType = appConfig.rootPostTypeOnHost,
+                category = appConfig.rootCategoryOnHost,
+                webOrigin = appConfig.webOrigin,
+                archiveUrl = appConfig.cmsArchiveUrl,
+                tokenProvider = { authSession.accessToken },
+            ),
+            TarotPlugin(),
+            MeinChatPlugin(),
+            MeinChatPlusPlugin(),
+        )
 
     /** Offline-first manifest loader (bundled `plugins.json`). */
     @Provides
     @Singleton
-    fun providePluginManifestLoader(@ApplicationContext context: Context): PluginManifestLoader =
-        BundledPluginManifestLoader(context)
+    fun providePluginManifestLoader(
+        @ApplicationContext context: Context,
+    ): PluginManifestLoader = BundledPluginManifestLoader(context)
 
     @Provides
     @Singleton
@@ -181,19 +187,23 @@ object CoreModule {
         client: ApiClient,
         apiClientConfig: ApiClientConfig,
         manifestLoader: PluginManifestLoader,
-        plugins: List<Plugin>,
+        // @JvmSuppressWildcards: Kotlin compiles List<Plugin> to a covariant
+        // List<? extends Plugin> at this param, which Dagger can't match to the
+        // List<Plugin> that provideAvailablePlugins produces.
+        plugins: List<@JvmSuppressWildcards Plugin>,
         events: EventBus,
         cart: Cart,
         checkoutSources: CheckoutSourceRegistry,
         notifications: NotificationsSdk,
-    ): PluginHost = PluginHost(
-        api = client,
-        apiConfig = apiClientConfig,
-        manifestLoader = manifestLoader,
-        plugins = plugins,
-        events = events,
-        cart = cart,
-        checkoutSources = checkoutSources,
-        notifications = notifications,
-    )
+    ): PluginHost =
+        PluginHost(
+            api = client,
+            apiConfig = apiClientConfig,
+            manifestLoader = manifestLoader,
+            plugins = plugins,
+            events = events,
+            cart = cart,
+            checkoutSources = checkoutSources,
+            notifications = notifications,
+        )
 }

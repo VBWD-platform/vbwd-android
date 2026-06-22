@@ -25,8 +25,13 @@ private class FakeApi : ApiClient {
         jsonBody: String?,
         deserializer: DeserializationStrategy<T>,
     ): T = EmptyResponse() as T
+
     override fun setToken(token: String?) = Unit
-    override fun on(event: ApiEvent, handler: () -> Unit) = Unit
+
+    override fun on(
+        event: ApiEvent,
+        handler: () -> Unit,
+    ) = Unit
 }
 
 /**
@@ -37,20 +42,21 @@ private class FakeApi : ApiClient {
  */
 class PaymentActionRoutingTest {
     @Test
-    fun `each payment method resolves to its own action by code`() = runTest {
-        val platform = DefaultPlatformSdk(FakeApi(), ApiClientConfig("http://x"), DefaultEventBus(FakeApi()))
+    fun `each payment method resolves to its own action by code`() =
+        runTest {
+            val platform = DefaultPlatformSdk(FakeApi(), ApiClientConfig("http://x"), DefaultEventBus(FakeApi()))
 
-        TokenPaymentPlugin().install(platform)
-        StripePaymentPlugin().install(platform)
-        InvoicePaymentPlugin().install(platform)
+            TokenPaymentPlugin().install(platform)
+            StripePaymentPlugin().install(platform)
+            InvoicePaymentPlugin().install(platform)
 
-        assertNotNull(platform.components.paymentAction("token_balance"))
-        assertNotNull(platform.components.paymentAction("stripe"))
-        assertNull(platform.components.paymentAction("invoice"))
+            assertNotNull(platform.components.paymentAction("token_balance"))
+            assertNotNull(platform.components.paymentAction("stripe"))
+            assertNull(platform.components.paymentAction("invoice"))
 
-        assertEquals(
-            setOf("token_balance", "stripe", "invoice"),
-            platform.components.supportedPaymentMethodCodes(),
-        )
-    }
+            assertEquals(
+                setOf("token_balance", "stripe", "invoice"),
+                platform.components.supportedPaymentMethodCodes(),
+            )
+        }
 }
