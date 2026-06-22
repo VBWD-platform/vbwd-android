@@ -28,11 +28,16 @@ state; Android reads the manifest only.
 
 ## Commands (the quality gate)
 
+Plugins and `:core` are composite `includeBuild(...)`s, so a module task is
+addressed `:<included-build>:<module>:<task>` (e.g. `:core:core:test`,
+`:tarot:tarot:test`) — **not** `:plugins:tarot:test`. `:app` is the only real
+subproject.
+
 ```bash
 ./gradlew check                  # ktlint + detekt + unit tests + Android lint (ALL modules)
 ./gradlew dependencyBoundaryCheck    # plugins depend on :core (+ declared peers) ONLY
-./gradlew :core:test             # quick loop on one module
-./gradlew :plugins:tarot:test    # quick loop on one plugin
+./gradlew :core:core:test        # quick loop on one module
+./gradlew :tarot:tarot:test      # quick loop on one plugin (composite path)
 ./gradlew :app:assembleDebug     # build the APK
 ```
 
@@ -43,8 +48,8 @@ change is done. Detekt config: `config/detekt/detekt.yml`.
 
 Run a single test class/method via Gradle's filter:
 ```bash
-./gradlew :core:test --tests "com.vbwd.core.plugins.PluginRegistryTest"
-./gradlew :core:test --tests "*.PluginRegistryTest.installs in topological order"
+./gradlew :core:core:test --tests "com.vbwd.core.plugins.PluginRegistryTest"
+./gradlew :core:core:test --tests "*.PluginRegistryTest.installs in topological order"
 ```
 
 ## Architecture

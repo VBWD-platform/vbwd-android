@@ -22,8 +22,13 @@ plugins {
 // PluginMetadata.dependencies). An undeclared `:plugins:a -> :plugins:b` edge,
 // or a plugin depending on `:app`, fails the build.
 //
-// In A01.0 there are no plugin modules yet, so this task is vacuously green;
-// it grows its allow-map as plugins land (A02+).
+// Post-polyrepo, plugins are composite `includeBuild(...)`s — NOT root
+// subprojects — and declare their peers as substituted Maven coordinates
+// (`com.vbwd:vbwd-android-<module>`, see settings.gradle.kts). The project model
+// of an included build is not reachable from here, so we statically scan each
+// plugin module's build script for those coordinates (mirrors the iOS shell
+// lint). This also keeps the task configuration-cache compatible: it captures
+// only Files and plain data — never `subprojects`/`configurations` at execution.
 // ---------------------------------------------------------------------------
 val declaredPeerDependencies: Map<String, Set<String>> = mapOf(
     // meinchat-plus consumes meinchat's secure-messaging seam (the only declared
@@ -31,32 +36,44 @@ val declaredPeerDependencies: Map<String, Set<String>> = mapOf(
     ":plugins:meinchat-plus" to setOf(":core", ":plugins:meinchat"),
 )
 
+// Each plugin lives at plugins/<name>/<name>/build.gradle.kts. Resolved at
+// configuration time to plain Files so the cache can serialize the task.
+val pluginModuleBuildFiles: List<File> =
+    (rootDir.resolve("plugins").listFiles { file -> file.isDirectory }?.toList() ?: emptyList())
+        .map { dir -> dir.resolve("${dir.name}/build.gradle.kts") }
+        .filter { it.isFile }
+        .sortedBy { it.path }
+
 tasks.register("dependencyBoundaryCheck") {
     group = "verification"
     description = "Plugin modules may depend on :core only (plus declared peer deps)."
+    val allowMap = declaredPeerDependencies
+    val buildFiles = pluginModuleBuildFiles
+    inputs.files(buildFiles)
     doLast {
+        val coordRegex = Regex("""com\.vbwd:vbwd-android-([\w-]+):""")
         val violations = mutableListOf<String>()
-        subprojects
-            .filter { it.path.startsWith(":plugins:") }
-            .forEach { pluginProject ->
-                val allowed = declaredPeerDependencies[pluginProject.path] ?: setOf(":core")
-                pluginProject.configurations.forEach { configuration ->
-                    configuration.dependencies
-                        .withType(ProjectDependency::class.java)
-                        .forEach { dependency ->
-                            if (dependency.path !in allowed) {
-                                violations += "${pluginProject.path} -> ${dependency.path} " +
-                                    "(allowed: $allowed)"
-                            }
+        buildFiles.forEach { file ->
+            val pluginPath = ":plugins:${file.parentFile.name}"
+            val allowed = allowMap[pluginPath] ?: setOf(":core")
+            file.readLines()
+                .filterNot { it.trimStart().startsWith("//") }
+                .forEach { line ->
+                    coordRegex.findAll(line).forEach { match ->
+                        val artifact = match.groupValues[1]
+                        val dep = if (artifact == "core") ":core" else ":plugins:$artifact"
+                        if (dep != pluginPath && dep !in allowed) {
+                            violations += "$pluginPath -> $dep (allowed: $allowed)"
                         }
+                    }
                 }
-            }
+        }
         if (violations.isNotEmpty()) {
             throw GradleException(
                 "Dependency boundary violations (plugins may import :core + declared peers only):\n" +
                     violations.joinToString("\n") { "  - $it" },
             )
         }
-        logger.lifecycle("dependencyBoundaryCheck: OK (${subprojects.count { it.path.startsWith(":plugins:") }} plugin module(s) checked)")
+        logger.lifecycle("dependencyBoundaryCheck: OK (${buildFiles.size} plugin module(s) checked)")
     }
 }
