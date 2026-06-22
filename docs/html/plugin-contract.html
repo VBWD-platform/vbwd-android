@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The plugin contract · vbwd-android SDK</title>
+<style>
+  :root{--bg:#0f1320;--panel:#161c2d;--ink:#e7ebf3;--mut:#9aa6bf;--acc:#3b82f6;--code:#0b0f1a;--line:#26304a}
+  *{box-sizing:border-box}
+  body{margin:0;font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bg)}
+  .sidebar{position:fixed;top:0;left:0;width:250px;height:100vh;overflow:auto;background:var(--panel);border-right:1px solid var(--line);padding:22px 16px}
+  .sidebar .brand{font-weight:700;font-size:15px;letter-spacing:.02em;color:#fff;margin:0 8px 16px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+  .sidebar a{display:block;color:var(--mut);text-decoration:none;padding:7px 10px;border-radius:8px;font-size:14.5px}
+  .sidebar a:hover{background:#1d2741;color:var(--ink)}
+  main{margin-left:250px;max-width:860px;padding:42px 48px 80px}
+  h1,h2,h3{color:#fff;line-height:1.25;font-weight:680}
+  h1{font-size:30px;margin:.2em 0 .6em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h2{font-size:22px;margin:1.8em 0 .6em} h3{font-size:17px;margin:1.4em 0 .4em}
+  a{color:var(--acc)} a:hover{text-decoration:underline}
+  code{background:var(--code);border:1px solid var(--line);border-radius:5px;padding:.1em .4em;font:13.5px/1.5 "SF Mono",ui-monospace,Menlo,Consolas,monospace}
+  pre{background:var(--code);border:1px solid var(--line);border-radius:10px;padding:16px 18px;overflow:auto}
+  pre code{background:none;border:0;padding:0}
+  table{border-collapse:collapse;width:100%;margin:1em 0;font-size:14.5px}
+  th,td{border:1px solid var(--line);padding:8px 12px;text-align:left;vertical-align:top}
+  th{background:#1d2741} tr:nth-child(even) td{background:#131a2a}
+  blockquote{border-left:3px solid var(--acc);margin:1em 0;padding:.4em 1em;background:#131a2a;border-radius:0 8px 8px 0;color:var(--mut)}
+  main img{max-width:270px;border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.4);margin:10px 0}
+  hr{border:0;border-top:1px solid var(--line);margin:2em 0}
+</style>
+</head>
+<body>
+<nav class="sidebar">
+  <div class="brand">vbwd-android SDK</div>
+  <a href="index.html">Overview</a>
+  <a href="getting-started.html">Getting started</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="plugin-contract.html">Plugin contract</a>
+  <a href="writing-a-plugin.html">Writing a plugin</a>
+  <a href="consuming-the-sdk.html">Consuming the SDK</a>
+  <a href="host-app.html">Host app</a>
+  <a href="testing.html">Testing &amp; the gate</a>
+  <a href="meinchat-reference.html">MeinChat reference</a>
+  <a href="artifacts.html">Artifacts</a>
+</nav>
+<main>
+<h1 id="the-plugin-contract">The plugin contract</h1>
+<p><a href="index.html">← Back to index</a></p>
+<p>Everything a plugin can do is defined by two types in
+<code>com.vbwd.core.plugins</code>: the
+<strong><code>Plugin</code></strong> interface you implement, and the
+<strong><code>PlatformSdk</code></strong> facade you receive. A plugin
+depends on these — and nothing else in core.</p>
+<h2 id="the-plugin-interface">The <code>Plugin</code> interface</h2>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">interface</span> Plugin <span class="op">{</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">metadata</span><span class="op">:</span> PluginMetadata</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    suspend <span class="kw">fun</span> <span class="fu">install</span><span class="op">(</span><span class="va">sdk</span><span class="op">:</span> <span class="dt">PlatformSdk</span><span class="op">)</span> <span class="op">{}</span>   <span class="co">// register your seams here</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    suspend <span class="kw">fun</span> <span class="fu">activate</span><span class="op">()</span> <span class="op">{}</span>                   <span class="co">// becomes &quot;live&quot;</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    suspend <span class="kw">fun</span> <span class="fu">deactivate</span><span class="op">()</span> <span class="op">{}</span>                 <span class="co">// active-dependent guarded</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    suspend <span class="kw">fun</span> <span class="fu">uninstall</span><span class="op">()</span> <span class="op">{}</span>                  <span class="co">// tear down (unsubscribe, etc.)</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>All hooks are <code>suspend</code>; all but <code>install</code>
+default to no-op, so override only what you need. Lifecycle:
+<code>register → install → activate → deactivate → uninstall</code>.</p>
+<h3 id="pluginmetadata"><code>PluginMetadata</code></h3>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="kw">class</span> PluginMetadata<span class="op">(</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">name</span><span class="op">:</span> <span class="dt">String</span><span class="op">,</span>                       <span class="co">// unique id, e.g. &quot;meinchat&quot;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">version</span><span class="op">:</span> <span class="dt">SemanticVersion</span><span class="op">,</span>           <span class="co">// SemanticVersion(1, 1, 0)</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">description</span><span class="op">:</span> <span class="dt">String</span><span class="op">?</span> <span class="op">=</span> null<span class="op">,</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">author</span><span class="op">:</span> <span class="dt">String</span><span class="op">?</span> <span class="op">=</span> null<span class="op">,</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">homepage</span><span class="op">:</span> <span class="dt">String</span><span class="op">?</span> <span class="op">=</span> null<span class="op">,</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">keywords</span><span class="op">:</span> <span class="dt">List</span>&lt;<span class="va">String</span>&gt; <span class="op">=</span> emptyList<span class="op">(),</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">dependencies</span><span class="op">:</span> <span class="dt">PluginDependencies</span> <span class="op">=</span> PluginDependencies<span class="op">.</span>None<span class="op">,</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">translations</span><span class="op">:</span> <span class="dt">Map</span>&lt;<span class="va">String</span><span class="op">,</span> <span class="va">Map</span>&lt;<span class="va">String</span><span class="op">,</span> <span class="va">String</span>&gt;&gt; <span class="op">=</span> emptyMap<span class="op">(),</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="op">)</span></span></code></pre></div>
+<p><strong>Declaring a peer dependency</strong> (the only way one plugin
+may use another):</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>dependencies <span class="op">=</span> PluginDependencies<span class="op">.</span>List<span class="op">(</span>listOf<span class="op">(</span><span class="st">&quot;meinchat&quot;</span><span class="op">))</span>          <span class="co">// any version</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>dependencies <span class="op">=</span> PluginDependencies<span class="op">.</span>Constrained<span class="op">(</span>mapOf<span class="op">(</span><span class="st">&quot;meinchat&quot;</span> to <span class="st">&quot;^1.0.0&quot;</span><span class="op">))</span></span></code></pre></div>
+<p>The registry installs in topological order and checks the semver
+constraint before installing the dependent.</p>
+<h2 id="the-platformsdk-facade">The <code>PlatformSdk</code> facade</h2>
+<p>This is the <strong>single seam</strong> through which you extend the
+app. You get it in <code>install(sdk)</code>.</p>
+<h3 id="injected-collaborators">Injected collaborators</h3>
+<table>
+<thead>
+<tr>
+<th>Member</th>
+<th>Type</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sdk.api</code></td>
+<td><code>ApiClient</code></td>
+<td>Call the backend
+(<code>get</code>/<code>post</code>/<code>put</code>/…, verb
+methods).</td>
+</tr>
+<tr>
+<td><code>sdk.apiConfig</code></td>
+<td><code>ApiClientConfig</code></td>
+<td><code>baseUrl</code> (e.g. to derive a media origin).</td>
+</tr>
+<tr>
+<td><code>sdk.events</code></td>
+<td><code>EventBus</code></td>
+<td>Subscribe/emit app events (auth, checkout, …).</td>
+</tr>
+<tr>
+<td><code>sdk.notifications</code></td>
+<td><code>NotificationsSdk</code></td>
+<td>Register a push-token sink / badge.</td>
+</tr>
+<tr>
+<td><code>sdk.cart</code></td>
+<td><code>Cart</code></td>
+<td>The session-wide cart (add items, read contents).</td>
+</tr>
+<tr>
+<td><code>sdk.checkoutSources</code></td>
+<td><code>CheckoutSourceRegistry</code></td>
+<td>Register a checkout source.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="extension-methods">Extension methods</h3>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Routes — screens reachable by path</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">fun</span> <span class="fu">addRoute</span><span class="op">(</span><span class="va">route</span><span class="op">:</span> <span class="dt">PluginRoute</span><span class="op">)</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co">// Components — named Compose factories the shell discovers by prefix</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="kw">fun</span> <span class="fu">addComponent</span><span class="op">(</span><span class="va">name</span><span class="op">:</span> <span class="dt">String</span><span class="op">,</span> <span class="va">factory</span><span class="op">:</span> @<span class="dt">Composable</span> (<span class="op">)</span> -&gt; <span class="fu">Unit</span>)</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="kw">fun</span> <span class="fu">removeComponent</span><span class="op">(</span><span class="va">name</span><span class="op">:</span> <span class="dt">String</span><span class="op">)</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="co">// Stores — share state/services across the plugin under a key</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="kw">fun</span> <span class="fu">createStore</span><span class="op">(</span><span class="va">id</span><span class="op">:</span> <span class="dt">String</span><span class="op">,</span> <span class="va">store</span><span class="op">:</span> <span class="dt">Any</span><span class="op">)</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="co">// i18n</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="kw">fun</span> <span class="fu">addTranslations</span><span class="op">(</span><span class="va">locale</span><span class="op">:</span> <span class="dt">String</span><span class="op">,</span> <span class="va">messages</span><span class="op">:</span> <span class="dt">Map</span>&lt;<span class="va">String</span><span class="op">,</span> <span class="va">String</span>&gt;<span class="op">)</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a><span class="co">// Side menu</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a><span class="kw">fun</span> <span class="fu">addMenuItem</span><span class="op">(</span><span class="va">item</span><span class="op">:</span> <span class="dt">MenuItem</span><span class="op">)</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a><span class="kw">fun</span> <span class="fu">removeMenuItem</span><span class="op">(</span><span class="va">id</span><span class="op">:</span> <span class="dt">String</span><span class="op">)</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a><span class="co">// Payment + checkout (for payment-method / commerce plugins)</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a><span class="kw">fun</span> <span class="fu">addPaymentAction</span><span class="op">(</span><span class="va">code</span><span class="op">:</span> <span class="dt">String</span><span class="op">,</span> <span class="va">handler</span><span class="op">:</span> <span class="dt">PaymentActionHandler</span><span class="op">)</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a><span class="kw">fun</span> <span class="fu">addCheckoutSource</span><span class="op">(</span><span class="va">source</span><span class="op">:</span> <span class="dt">CheckoutSource</span><span class="op">)</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a><span class="kw">fun</span> <span class="fu">removeCheckoutSource</span><span class="op">(</span><span class="va">id</span><span class="op">:</span> <span class="dt">String</span><span class="op">)</span></span></code></pre></div>
+<h2 id="seam-reference">Seam reference</h2>
+<h3 id="routes">Routes</h3>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>PluginRoute<span class="op">(</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    path <span class="op">=</span> <span class="st">&quot;/meinchat&quot;</span><span class="op">,</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    name <span class="op">=</span> <span class="st">&quot;meinchat&quot;</span><span class="op">,</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    requiresAuth <span class="op">=</span> <span class="kw">true</span><span class="op">,</span>            <span class="co">// gate behind login</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    requiredUserPermission <span class="op">=</span> <span class="kw">null</span><span class="op">,</span>  <span class="co">// optional permission string</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    matchPrefix <span class="op">=</span> <span class="kw">true</span><span class="op">,</span>             <span class="co">// any path under /meinchat matches</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="op">)</span> <span class="op">{</span> MeinChatScreen<span class="op">(</span><span class="co">/* … */</span><span class="op">)</span> <span class="op">}</span>       <span class="co">// content: @Composable</span></span></code></pre></div>
+<h3 id="components-the-naming-convention">Components (the naming
+convention)</h3>
+<p><code>addComponent(name) { … }</code> registers a Compose factory.
+The shell renders it by <strong>name prefix</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Prefix</th>
+<th>Where it renders</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Dashboard*</code></td>
+<td>a card on the Dashboard (e.g. <code>"DashboardExample"</code>)</td>
+</tr>
+<tr>
+<td><code>Profile*</code></td>
+<td>a section on the Profile screen (e.g.
+<code>"ProfileMeinChatNickname"</code>)</td>
+</tr>
+</tbody>
+</table>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>sdk<span class="op">.</span>addComponent<span class="op">(</span><span class="st">&quot;DashboardExample&quot;</span><span class="op">)</span> <span class="op">{</span> ExampleDashboardWidget<span class="op">(</span>store<span class="op">)</span> <span class="op">}</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>sdk<span class="op">.</span>addComponent<span class="op">(</span><span class="st">&quot;ProfileExample&quot;</span><span class="op">)</span>   <span class="op">{</span> ExampleProfileSection<span class="op">()</span> <span class="op">}</span></span></code></pre></div>
+<h3 id="menu-items">Menu items</h3>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>sdk<span class="op">.</span>addMenuItem<span class="op">(</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    MenuItem<span class="op">(</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>        id <span class="op">=</span> <span class="st">&quot;meinchat&quot;</span><span class="op">,</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>        icon <span class="op">=</span> <span class="st">&quot;chat&quot;</span><span class="op">,</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>        title <span class="op">=</span> <span class="st">&quot;MeinChat&quot;</span><span class="op">,</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>        routePath <span class="op">=</span> <span class="st">&quot;/meinchat&quot;</span><span class="op">,</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>        order <span class="op">=</span> <span class="dv">40</span><span class="op">,</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>        section <span class="op">=</span> <span class="st">&quot;top&quot;</span><span class="op">,</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">),</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="op">)</span></span></code></pre></div>
+<h3 id="events">Events</h3>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">val</span> <span class="va">unsubscribe</span> <span class="op">=</span> sdk<span class="op">.</span>events<span class="op">.</span>on<span class="op">(</span>AppEvents<span class="op">.</span>AUTH_LOGIN<span class="op">)</span> <span class="op">{</span> <span class="co">/* payload */</span> <span class="op">}</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>sdk<span class="op">.</span>events<span class="op">.</span>emit<span class="op">(</span>AppEvents<span class="op">.</span>CHECKOUT_FAILED<span class="op">)</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="co">// in uninstall(): unsubscribe()</span></span></code></pre></div>
+<p>Common events: <code>AUTH_LOGIN</code>, <code>AUTH_LOGOUT</code>,
+<code>AUTH_SESSION_EXPIRED</code>, <code>CHECKOUT_FAILED</code>,
+<code>PLUGIN_ERROR</code>.</p>
+<h3 id="payment-actions">Payment actions</h3>
+<p>A payment-method plugin registers a handler keyed by a code. After
+checkout creates an invoice, the handler decides what happens next:</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>sdk<span class="op">.</span>addPaymentAction<span class="op">(</span><span class="st">&quot;stripe&quot;</span><span class="op">)</span> <span class="op">{</span> invoiceId <span class="op">-&gt;</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">url</span> <span class="op">=</span> createStripeSession<span class="op">(</span>invoiceId<span class="op">)</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    PaymentAction<span class="op">.</span>OpenUrl<span class="op">(</span>url<span class="op">)</span>            <span class="co">// open external payment page</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="co">// or PaymentAction.ShowConfirmation     // go straight to confirmation (e.g. invoice)</span></span></code></pre></div>
+<p>Registering <strong>no</strong> handler for a method makes generic
+checkout go straight to the confirmation page (that is how the invoice
+plugin works).</p>
+<h2 id="error-isolation-contract">Error isolation contract</h2>
+<p>If any of your hooks throws, the registry marks your plugin
+<code>PluginStatus.Error(reason)</code> and continues with the others —
+it never aborts the shell. Cancellation always propagates (use
+<code>currentCoroutineContext().ensureActive()</code> inside broad
+<code>catch</code> blocks rather than swallowing it).</p>
+<hr />
+<p>Next: <a href="writing-a-plugin.html">Writing a plugin →</a></p>
+</main>
+</body>
+</html>

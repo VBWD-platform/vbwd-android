@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Architecture · vbwd-android SDK</title>
+<style>
+  :root{--bg:#0f1320;--panel:#161c2d;--ink:#e7ebf3;--mut:#9aa6bf;--acc:#3b82f6;--code:#0b0f1a;--line:#26304a}
+  *{box-sizing:border-box}
+  body{margin:0;font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bg)}
+  .sidebar{position:fixed;top:0;left:0;width:250px;height:100vh;overflow:auto;background:var(--panel);border-right:1px solid var(--line);padding:22px 16px}
+  .sidebar .brand{font-weight:700;font-size:15px;letter-spacing:.02em;color:#fff;margin:0 8px 16px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+  .sidebar a{display:block;color:var(--mut);text-decoration:none;padding:7px 10px;border-radius:8px;font-size:14.5px}
+  .sidebar a:hover{background:#1d2741;color:var(--ink)}
+  main{margin-left:250px;max-width:860px;padding:42px 48px 80px}
+  h1,h2,h3{color:#fff;line-height:1.25;font-weight:680}
+  h1{font-size:30px;margin:.2em 0 .6em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h2{font-size:22px;margin:1.8em 0 .6em} h3{font-size:17px;margin:1.4em 0 .4em}
+  a{color:var(--acc)} a:hover{text-decoration:underline}
+  code{background:var(--code);border:1px solid var(--line);border-radius:5px;padding:.1em .4em;font:13.5px/1.5 "SF Mono",ui-monospace,Menlo,Consolas,monospace}
+  pre{background:var(--code);border:1px solid var(--line);border-radius:10px;padding:16px 18px;overflow:auto}
+  pre code{background:none;border:0;padding:0}
+  table{border-collapse:collapse;width:100%;margin:1em 0;font-size:14.5px}
+  th,td{border:1px solid var(--line);padding:8px 12px;text-align:left;vertical-align:top}
+  th{background:#1d2741} tr:nth-child(even) td{background:#131a2a}
+  blockquote{border-left:3px solid var(--acc);margin:1em 0;padding:.4em 1em;background:#131a2a;border-radius:0 8px 8px 0;color:var(--mut)}
+  main img{max-width:270px;border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.4);margin:10px 0}
+  hr{border:0;border-top:1px solid var(--line);margin:2em 0}
+</style>
+</head>
+<body>
+<nav class="sidebar">
+  <div class="brand">vbwd-android SDK</div>
+  <a href="index.html">Overview</a>
+  <a href="getting-started.html">Getting started</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="plugin-contract.html">Plugin contract</a>
+  <a href="writing-a-plugin.html">Writing a plugin</a>
+  <a href="consuming-the-sdk.html">Consuming the SDK</a>
+  <a href="host-app.html">Host app</a>
+  <a href="testing.html">Testing &amp; the gate</a>
+  <a href="meinchat-reference.html">MeinChat reference</a>
+  <a href="artifacts.html">Artifacts</a>
+</nav>
+<main>
+<h1 id="architecture">Architecture</h1>
+<p><a href="index.html">← Back to index</a></p>
+<h2 id="modules">Modules</h2>
+<table>
+<thead>
+<tr>
+<th>Module</th>
+<th>Artifact</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>:app</code></td>
+<td>(the host)</td>
+<td><code>@HiltAndroidApp</code>, <code>MainActivity</code>, composition
+root, <code>plugins.json</code>.</td>
+</tr>
+<tr>
+<td><code>:core</code></td>
+<td><code>com.vbwd:vbwd-android-core</code></td>
+<td>Networking, domain, session/auth, the plugin system, the shared
+Compose UI shell.</td>
+</tr>
+<tr>
+<td><code>:plugins:*</code></td>
+<td><code>com.vbwd:vbwd-android-&lt;name&gt;</code></td>
+<td>Feature plugins — depend on <code>:core</code>
+<strong>only</strong>.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="the-dependency-boundary-rule-core-agnosticism">The
+dependency-boundary rule (core-agnosticism)</h2>
+<p>A plugin may depend on <strong><code>:core</code> and nothing
+else</strong> — except a peer plugin it <em>declares</em>. This is
+enforced by the <code>dependencyBoundaryCheck</code> Gradle task and
+mirrors <code>PluginMetadata.dependencies</code>. The only declared
+plugin→plugin edge today is <code>meinchat-plus → meinchat</code>.</p>
+<p>Why it matters: plugins extend the app exclusively through the
+<code>PlatformSdk</code> facade (Open/Closed). They never import a
+registry, the host, or another plugin's models. This keeps the core
+<strong>agnostic</strong> of any feature and lets plugins ship, version,
+and be enabled/disabled independently.</p>
+<pre><code>plugin  ──depends on──►  :core        ✅ always allowed
+plugin  ──depends on──►  another plugin   ❌ unless declared in dependencies
+plugin  ──depends on──►  :app          ❌ never</code></pre>
+<h2 id="boot-sequence-the-plugin-host">Boot sequence (the plugin
+host)</h2>
+<p><code>PluginHost.bootstrap()</code> (in core) runs once at app
+start:</p>
+<ol type="1">
+<li><strong>Load the manifest</strong> — <code>plugins.json</code>
+(offline-first) or the backend endpoint.</li>
+<li><strong>Register</strong> the compiled-in plugins with the
+<code>PluginRegistry</code>.</li>
+<li><strong>Install</strong> the <em>enabled</em> ones in
+<strong>dependency order</strong> (topological sort, with semver-checked
+dependencies). Each <code>Plugin.install(sdk)</code> contributes its
+routes, components, stores, etc.</li>
+<li><strong>Collect routes</strong> from the SDK.</li>
+<li><strong>Activate</strong> the installed plugins.</li>
+</ol>
+<p>Robustness is built in:</p>
+<ul>
+<li>A <strong>structural</strong> error (missing/unsatisfied/circular
+dependency) is isolated — the shell still loads.</li>
+<li>A <strong>per-plugin</strong> hook failure marks that plugin
+<code>PluginStatus.Error</code> and skips it; peers continue. A broken
+third-party plugin can never take down the app.</li>
+</ul>
+<pre><code>plugins.json ─► PluginHost.bootstrap()
+                   │ register → installAll(enabled) → activate
+                   ▼
+              PluginRegistry  (topological, semver, error-isolated)
+                   │ install(sdk)
+                   ▼
+              PlatformSdk  (routes / components / stores / i18n / menu / payment / checkout)
+                   │
+                   ▼
+              AppShellView renders Dashboard / Profile / Settings + plugin routes</code></pre>
+<h2 id="the-shared-ui-shell">The shared UI shell</h2>
+<p>Core ships the host UI so plugins focus on features, not chrome:</p>
+<ul>
+<li><code>RootView</code> — switches between the login screen (signed
+out) and the app shell.</li>
+<li><code>AppShellView</code> — the drawer + Dashboard / Profile /
+Settings, and it surfaces plugin <strong>routes</strong>,
+<strong>dashboard widgets</strong> (<code>Dashboard*</code> components)
+and <strong>profile sections</strong> (<code>Profile*</code>
+components).</li>
+<li>A theme system (<code>VbwdTheme</code>, <code>ThemeManager</code>) —
+plugins can register themes.</li>
+</ul>
+<h2 id="composition-root-di">Composition root (DI)</h2>
+<p>The host's <code>di/CoreModule.kt</code> (a Hilt module) is the
+<strong>only</strong> place concrete adapters are named
+(<code>OkHttpApiClient</code>, <code>EncryptedTokenStore</code>, the
+manifest loader, the available-plugins list). Everything downstream is
+constructor-injected against interfaces. Plugins are
+<strong>not</strong> in the Hilt graph — they are plain instances the
+host lists and the <code>PluginHost</code> bootstraps. See <a
+href="host-app.html">The host app</a>.</p>
+<h2 id="ios--kotlin-mapping">iOS → Kotlin mapping</h2>
+<table>
+<thead>
+<tr>
+<th>iOS / web</th>
+<th>Android</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ObservableObject</code> / <code>@Published</code></td>
+<td>ViewModel + <code>StateFlow</code></td>
+</tr>
+<tr>
+<td><code>async/await</code></td>
+<td><code>suspend</code> / Flow</td>
+</tr>
+<tr>
+<td><code>Codable</code></td>
+<td>kotlinx.serialization</td>
+</tr>
+<tr>
+<td><code>URLSession</code> behind a port</td>
+<td>OkHttp behind <code>ApiClient</code> (verb methods, not Retrofit —
+ISP)</td>
+</tr>
+<tr>
+<td><code>KeychainTokenStore</code></td>
+<td><code>EncryptedSharedPreferences</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p>Next: <a href="plugin-contract.html">The plugin contract →</a></p>
+</main>
+</body>
+</html>

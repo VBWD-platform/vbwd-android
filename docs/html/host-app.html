@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The host app · vbwd-android SDK</title>
+<style>
+  :root{--bg:#0f1320;--panel:#161c2d;--ink:#e7ebf3;--mut:#9aa6bf;--acc:#3b82f6;--code:#0b0f1a;--line:#26304a}
+  *{box-sizing:border-box}
+  body{margin:0;font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bg)}
+  .sidebar{position:fixed;top:0;left:0;width:250px;height:100vh;overflow:auto;background:var(--panel);border-right:1px solid var(--line);padding:22px 16px}
+  .sidebar .brand{font-weight:700;font-size:15px;letter-spacing:.02em;color:#fff;margin:0 8px 16px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+  .sidebar a{display:block;color:var(--mut);text-decoration:none;padding:7px 10px;border-radius:8px;font-size:14.5px}
+  .sidebar a:hover{background:#1d2741;color:var(--ink)}
+  main{margin-left:250px;max-width:860px;padding:42px 48px 80px}
+  h1,h2,h3{color:#fff;line-height:1.25;font-weight:680}
+  h1{font-size:30px;margin:.2em 0 .6em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h2{font-size:22px;margin:1.8em 0 .6em} h3{font-size:17px;margin:1.4em 0 .4em}
+  a{color:var(--acc)} a:hover{text-decoration:underline}
+  code{background:var(--code);border:1px solid var(--line);border-radius:5px;padding:.1em .4em;font:13.5px/1.5 "SF Mono",ui-monospace,Menlo,Consolas,monospace}
+  pre{background:var(--code);border:1px solid var(--line);border-radius:10px;padding:16px 18px;overflow:auto}
+  pre code{background:none;border:0;padding:0}
+  table{border-collapse:collapse;width:100%;margin:1em 0;font-size:14.5px}
+  th,td{border:1px solid var(--line);padding:8px 12px;text-align:left;vertical-align:top}
+  th{background:#1d2741} tr:nth-child(even) td{background:#131a2a}
+  blockquote{border-left:3px solid var(--acc);margin:1em 0;padding:.4em 1em;background:#131a2a;border-radius:0 8px 8px 0;color:var(--mut)}
+  main img{max-width:270px;border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.4);margin:10px 0}
+  hr{border:0;border-top:1px solid var(--line);margin:2em 0}
+</style>
+</head>
+<body>
+<nav class="sidebar">
+  <div class="brand">vbwd-android SDK</div>
+  <a href="index.html">Overview</a>
+  <a href="getting-started.html">Getting started</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="plugin-contract.html">Plugin contract</a>
+  <a href="writing-a-plugin.html">Writing a plugin</a>
+  <a href="consuming-the-sdk.html">Consuming the SDK</a>
+  <a href="host-app.html">Host app</a>
+  <a href="testing.html">Testing &amp; the gate</a>
+  <a href="meinchat-reference.html">MeinChat reference</a>
+  <a href="artifacts.html">Artifacts</a>
+</nav>
+<main>
+<h1 id="the-host-app">The host app</h1>
+<p><a href="index.html">← Back to index</a></p>
+<p>The host app (<code>:app</code> / the
+<code>vbwd-android-app-example</code> repo) is thin: it names concrete
+adapters, lists the plugins to bundle, and ships config.
+<code>vbwd-android-core</code> provides everything else.</p>
+<h2 id="the-composition-root">The composition root</h2>
+<p><code>app/src/main/kotlin/com/vbwd/app/di/CoreModule.kt</code> is a
+Hilt module — the <strong>only</strong> place concrete adapters are
+constructed:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Module</span> <span class="at">@InstallIn</span><span class="op">(</span>SingletonComponent<span class="op">::</span><span class="kw">class</span>)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="kw">object</span> CoreModule <span class="op">{</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Provides</span> <span class="at">@Singleton</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">provideApiClient</span><span class="op">(</span><span class="va">config</span><span class="op">:</span> <span class="dt">ApiClientConfig</span><span class="op">):</span> <span class="dt">ApiClient</span> <span class="op">=</span> OkHttpApiClient<span class="op">(</span>config<span class="op">)</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Provides</span> <span class="at">@Singleton</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">provideTokenStore</span><span class="op">(</span>@<span class="va">ApplicationContext</span> <span class="va">c</span><span class="op">:</span> <span class="dt">Context</span><span class="op">):</span> <span class="dt">TokenStore</span> <span class="op">=</span> EncryptedTokenStore<span class="op">(</span>c<span class="op">)</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">/** The available-plugins list the host bundles. */</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Provides</span> <span class="at">@Singleton</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">provideAvailablePlugins</span><span class="op">(</span><span class="co">/* deps */</span><span class="op">):</span> <span class="dt">List</span><span class="op">&lt;</span><span class="dt">Plugin</span><span class="op">&gt;</span> <span class="op">=</span> listOf<span class="op">(</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>        ExamplePlugin<span class="op">(),</span> SubscriptionPlugin<span class="op">(),</span> MeinChatPlugin<span class="op">(),</span> <span class="co">/* … */</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">)</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    <span class="co">/** Offline-first manifest (bundled plugins.json). */</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Provides</span> <span class="at">@Singleton</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">providePluginManifestLoader</span><span class="op">(</span>@<span class="va">ApplicationContext</span> <span class="va">c</span><span class="op">:</span> <span class="dt">Context</span><span class="op">):</span> <span class="dt">PluginManifestLoader</span> <span class="op">=</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>        BundledPluginManifestLoader<span class="op">(</span>c<span class="op">)</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Provides</span> <span class="at">@Singleton</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">providePluginHost</span><span class="op">(</span><span class="co">/* api, manifestLoader, plugins, events, cart, … */</span><span class="op">):</span> <span class="dt">PluginHost</span> <span class="op">=</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>        PluginHost<span class="op">(</span><span class="co">/* … */</span><span class="op">)</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><code>@JvmSuppressWildcards</code> is needed on the
+<code>List&lt;Plugin&gt;</code> parameter so Dagger matches the
+covariant list — keep it when you add providers.</p>
+<h2 id="bootstrapping">Bootstrapping</h2>
+<p><code>AppRoot</code> themes the app, boots the host, then drives the
+auth shell:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Composable</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="kw">fun</span> <span class="fu">AppRoot</span><span class="op">(</span><span class="va">session</span><span class="op">:</span> <span class="dt">AuthSession</span><span class="op">,</span> <span class="va">pluginHost</span><span class="op">:</span> <span class="dt">PluginHost</span><span class="op">,</span> <span class="va">themeManager</span><span class="op">:</span> <span class="dt">ThemeManager</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">var</span> <span class="va">booted</span> <span class="kw">by</span> remember <span class="op">{</span> mutableStateOf<span class="op">(</span><span class="kw">false</span><span class="op">)</span> <span class="op">}</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    LaunchedEffect<span class="op">(</span>pluginHost<span class="op">)</span> <span class="op">{</span> pluginHost<span class="op">.</span>bootstrap<span class="op">();</span> booted <span class="op">=</span> <span class="kw">true</span> <span class="op">}</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    VbwdTheme<span class="op">(</span>themeManager<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(!</span>booted<span class="op">)</span> <span class="co">/* spinner */</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span> RootView<span class="op">(</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>            session <span class="op">=</span> session<span class="op">,</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>            loginContent <span class="op">=</span> <span class="op">{</span> LoginScreen<span class="op">(</span>hiltViewModel<span class="op">())</span> <span class="op">},</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>            authenticatedContent <span class="op">=</span> <span class="op">{</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>                AppShellView<span class="op">(</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>                    host <span class="op">=</span> pluginHost<span class="op">,</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>                    session <span class="op">=</span> session<span class="op">,</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>                    dashboardContent <span class="op">=</span> <span class="op">{</span> DashboardScreen<span class="op">(</span>hiltViewModel<span class="op">())</span> <span class="op">},</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>                    profileContent <span class="op">=</span> <span class="op">{</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>                        ProfileEditScreen<span class="op">(</span>hiltViewModel<span class="op">(),</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>                            profileSections <span class="op">=</span> pluginHost<span class="op">.</span>components<span class="op">.</span>profileComponents<span class="op">())</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>                    <span class="op">},</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>                    settingsContent <span class="op">=</span> <span class="op">{</span> SettingsScreen<span class="op">(</span>themeManager<span class="op">)</span> <span class="op">},</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>                <span class="op">)</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>            <span class="op">},</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>        <span class="op">)</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="two-config-assets">Two config assets</h2>
+<h3 id="pluginsjson--enabledisable-manifest"><code>plugins.json</code> —
+enable/disable manifest</h3>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;plugins&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;example&quot;</span><span class="fu">:</span>  <span class="fu">{</span> <span class="dt">&quot;enabled&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span>  <span class="dt">&quot;version&quot;</span><span class="fu">:</span> <span class="st">&quot;1.0.0&quot;</span><span class="fu">,</span> <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="st">&quot;local&quot;</span> <span class="fu">},</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;meinchat&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;enabled&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span>  <span class="dt">&quot;version&quot;</span><span class="fu">:</span> <span class="st">&quot;1.1.0&quot;</span><span class="fu">,</span> <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="st">&quot;local&quot;</span> <span class="fu">},</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;tarot&quot;</span><span class="fu">:</span>    <span class="fu">{</span> <span class="dt">&quot;enabled&quot;</span><span class="fu">:</span> <span class="kw">false</span><span class="fu">,</span> <span class="dt">&quot;version&quot;</span><span class="fu">:</span> <span class="st">&quot;0.1.0&quot;</span><span class="fu">,</span> <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="st">&quot;local&quot;</span> <span class="fu">}</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>Only <code>enabled</code> plugins are installed. The bundled file is
+the offline default; the backend's
+<code>/admin/frontend-plugins/&lt;app&gt;</code> endpoint is the runtime
+single-writer (Android reads, never writes).</p>
+<h3 id="vbwd_configjson--runtime-config"><code>vbwd_config.json</code> —
+runtime config</h3>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;api_base_url&quot;</span><span class="fu">:</span> <span class="st">&quot;http://10.0.2.2:5000/api/v1&quot;</span><span class="fu">,</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;root_android_category_on_host&quot;</span><span class="fu">:</span> <span class="st">&quot;news&quot;</span><span class="fu">,</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;root_android_post_type_on_host&quot;</span><span class="fu">:</span> <span class="st">&quot;post&quot;</span><span class="fu">,</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;web_base_url&quot;</span><span class="fu">:</span> <span class="st">&quot;http://10.0.2.2:8080&quot;</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<ul>
+<li><code>10.0.2.2</code> is the emulator's alias for the host machine's
+<code>localhost</code>.</li>
+<li>The <strong>media/web origin</strong> is derived by stripping
+<code>/api/vN</code> from <code>api_base_url</code> (used e.g. to
+absolutise relative attachment URLs).</li>
+</ul>
+<h2 id="adding-a-plugin-to-the-host--checklist">Adding a plugin to the
+host — checklist</h2>
+<ol type="1">
+<li>Add the dependency
+(<code>implementation("com.vbwd:vbwd-android-&lt;name&gt;:&lt;ver&gt;")</code>)
+or the module.</li>
+<li>Add <code>MyPlugin()</code> to
+<code>provideAvailablePlugins</code>.</li>
+<li>Add its entry to <code>plugins.json</code>.</li>
+</ol>
+<hr />
+<p>Next: <a href="testing.html">Testing &amp; the quality gate →</a></p>
+</main>
+</body>
+</html>

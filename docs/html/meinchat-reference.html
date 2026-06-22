@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MeinChat reference · vbwd-android SDK</title>
+<style>
+  :root{--bg:#0f1320;--panel:#161c2d;--ink:#e7ebf3;--mut:#9aa6bf;--acc:#3b82f6;--code:#0b0f1a;--line:#26304a}
+  *{box-sizing:border-box}
+  body{margin:0;font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bg)}
+  .sidebar{position:fixed;top:0;left:0;width:250px;height:100vh;overflow:auto;background:var(--panel);border-right:1px solid var(--line);padding:22px 16px}
+  .sidebar .brand{font-weight:700;font-size:15px;letter-spacing:.02em;color:#fff;margin:0 8px 16px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+  .sidebar a{display:block;color:var(--mut);text-decoration:none;padding:7px 10px;border-radius:8px;font-size:14.5px}
+  .sidebar a:hover{background:#1d2741;color:var(--ink)}
+  main{margin-left:250px;max-width:860px;padding:42px 48px 80px}
+  h1,h2,h3{color:#fff;line-height:1.25;font-weight:680}
+  h1{font-size:30px;margin:.2em 0 .6em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h2{font-size:22px;margin:1.8em 0 .6em} h3{font-size:17px;margin:1.4em 0 .4em}
+  a{color:var(--acc)} a:hover{text-decoration:underline}
+  code{background:var(--code);border:1px solid var(--line);border-radius:5px;padding:.1em .4em;font:13.5px/1.5 "SF Mono",ui-monospace,Menlo,Consolas,monospace}
+  pre{background:var(--code);border:1px solid var(--line);border-radius:10px;padding:16px 18px;overflow:auto}
+  pre code{background:none;border:0;padding:0}
+  table{border-collapse:collapse;width:100%;margin:1em 0;font-size:14.5px}
+  th,td{border:1px solid var(--line);padding:8px 12px;text-align:left;vertical-align:top}
+  th{background:#1d2741} tr:nth-child(even) td{background:#131a2a}
+  blockquote{border-left:3px solid var(--acc);margin:1em 0;padding:.4em 1em;background:#131a2a;border-radius:0 8px 8px 0;color:var(--mut)}
+  main img{max-width:270px;border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.4);margin:10px 0}
+  hr{border:0;border-top:1px solid var(--line);margin:2em 0}
+</style>
+</head>
+<body>
+<nav class="sidebar">
+  <div class="brand">vbwd-android SDK</div>
+  <a href="index.html">Overview</a>
+  <a href="getting-started.html">Getting started</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="plugin-contract.html">Plugin contract</a>
+  <a href="writing-a-plugin.html">Writing a plugin</a>
+  <a href="consuming-the-sdk.html">Consuming the SDK</a>
+  <a href="host-app.html">Host app</a>
+  <a href="testing.html">Testing &amp; the gate</a>
+  <a href="meinchat-reference.html">MeinChat reference</a>
+  <a href="artifacts.html">Artifacts</a>
+</nav>
+<main>
+<h1 id="meinchat-reference">MeinChat reference</h1>
+<p><a href="index.html">← Back to index</a></p>
+<p><code>vbwd-android-meinchat</code> is the most feature-complete
+plugin and a good template for rich, stateful features. It registers a
+prefix route (<code>/meinchat</code>), a profile section, a menu item,
+stores, an auth-aware push-token sink, and exposes a secure-messaging
+seam that <code>meinchat-plus</code> fills. The screenshots below are
+from the running example app.</p>
+<h2 id="direct-messaging--inbox--conversations">Direct messaging — inbox
+&amp; conversations</h2>
+<p>The inbox lists conversations as cards (colour-keyed initials avatar,
+last-message preview, unread badge) with a <strong>Chats /
+Rooms</strong> toggle and a <strong>+ New chat</strong> entry.</p>
+<p><img src="screenshots/01-inbox-chats-tabs.png"
+alt="Inbox with Chats/Rooms tabs" /></p>
+<p>A conversation renders message <strong>bubbles</strong> — outgoing
+right (primary), incoming left (surfaceVariant) with the sender name — a
+top bar, and a rounded input with a circular send button. The thread is
+sorted by sent time and auto-scrolls to the newest message.</p>
+<p><img src="screenshots/02-conversation-bubbles.png"
+alt="Conversation bubbles" /></p>
+<h2 id="token-transfers">Token transfers</h2>
+<p>In-chat token transfers arrive as messages with
+<code>system_kind = token_transfer</code> and a JSON body. The UI parses
+them and renders a <strong>card</strong> ("Sent / Received N tokens to /
+from X", plus an optional note) instead of raw JSON — right-aligned when
+you are the sender.</p>
+<p><img src="screenshots/03-token-transfer-cards.png"
+alt="Token-transfer cards" /></p>
+<h2 id="image-attachments">Image attachments</h2>
+<p>Message image attachments (<code>storage_url</code> is relative
+<code>/uploads/...</code>) are resolved against the host origin and
+loaded with Coil.</p>
+<p><img src="screenshots/04-image-attachment.png"
+alt="Image attachment" /></p>
+<h2 id="group-rooms">Group rooms</h2>
+<p>The <strong>Rooms</strong> tab lists group rooms (member count,
+unread badge); opening one reuses the same bubble UI with the room name
++ member count in the top bar.</p>
+<p><img src="screenshots/05-rooms-list.png" alt="Rooms list" /></p>
+<p><img src="screenshots/06-room-view.png" alt="Room view" /></p>
+<h2 id="find-users--start-a-chat">Find users / start a chat</h2>
+<p><strong>+ New chat</strong> searches users by nickname and opens (or
+creates) a conversation on tap.</p>
+<p><img src="screenshots/07-new-chat-search.png"
+alt="New-chat search" /></p>
+<h2 id="nickname-management">Nickname management</h2>
+<p>A profile section (<code>ProfileMeinChatNickname</code>) lets the
+user view and change their meinchat nickname.</p>
+<p><img src="screenshots/08-nickname-section.png"
+alt="Nickname section" /></p>
+<h2 id="how-it-maps-to-the-contract">How it maps to the contract</h2>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Seam used</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/meinchat</code> screen</td>
+<td><code>addRoute(PluginRoute(matchPrefix = true, requiresAuth = true))</code></td>
+</tr>
+<tr>
+<td>Nickname editor</td>
+<td><code>addComponent("ProfileMeinChatNickname") { … }</code></td>
+</tr>
+<tr>
+<td>Side-menu entry</td>
+<td><code>addMenuItem(MenuItem(routePath = "/meinchat", …))</code></td>
+</tr>
+<tr>
+<td>Limits / retention / cache</td>
+<td><code>createStore("meinchat…", …)</code></td>
+</tr>
+<tr>
+<td>Push token relay</td>
+<td><code>sdk.notifications.registerSink(...)</code>,
+<code>events.on(AUTH_LOGIN/LOGOUT)</code></td>
+</tr>
+<tr>
+<td>Backend calls</td>
+<td><code>sdk.api.get/post(...)</code></td>
+</tr>
+<tr>
+<td>Media origin</td>
+<td>derived from <code>sdk.apiConfig.baseUrl</code></td>
+</tr>
+<tr>
+<td>E2E seam</td>
+<td>a store id consumed by <code>meinchat-plus</code> (the one declared
+peer dependency)</td>
+</tr>
+</tbody>
+</table>
+<p>Automated coverage of these screens lives in
+<code>MeinChatScreenTest</code> (Robolectric Compose tests); see <a
+href="testing.html">Testing &amp; the quality gate</a>.</p>
+<hr />
+<p>Next: <a href="artifacts.html">Published artifacts →</a></p>
+</main>
+</body>
+</html>

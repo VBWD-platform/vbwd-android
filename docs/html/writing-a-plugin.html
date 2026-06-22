@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Writing a plugin · vbwd-android SDK</title>
+<style>
+  :root{--bg:#0f1320;--panel:#161c2d;--ink:#e7ebf3;--mut:#9aa6bf;--acc:#3b82f6;--code:#0b0f1a;--line:#26304a}
+  *{box-sizing:border-box}
+  body{margin:0;font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bg)}
+  .sidebar{position:fixed;top:0;left:0;width:250px;height:100vh;overflow:auto;background:var(--panel);border-right:1px solid var(--line);padding:22px 16px}
+  .sidebar .brand{font-weight:700;font-size:15px;letter-spacing:.02em;color:#fff;margin:0 8px 16px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+  .sidebar a{display:block;color:var(--mut);text-decoration:none;padding:7px 10px;border-radius:8px;font-size:14.5px}
+  .sidebar a:hover{background:#1d2741;color:var(--ink)}
+  main{margin-left:250px;max-width:860px;padding:42px 48px 80px}
+  h1,h2,h3{color:#fff;line-height:1.25;font-weight:680}
+  h1{font-size:30px;margin:.2em 0 .6em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h2{font-size:22px;margin:1.8em 0 .6em} h3{font-size:17px;margin:1.4em 0 .4em}
+  a{color:var(--acc)} a:hover{text-decoration:underline}
+  code{background:var(--code);border:1px solid var(--line);border-radius:5px;padding:.1em .4em;font:13.5px/1.5 "SF Mono",ui-monospace,Menlo,Consolas,monospace}
+  pre{background:var(--code);border:1px solid var(--line);border-radius:10px;padding:16px 18px;overflow:auto}
+  pre code{background:none;border:0;padding:0}
+  table{border-collapse:collapse;width:100%;margin:1em 0;font-size:14.5px}
+  th,td{border:1px solid var(--line);padding:8px 12px;text-align:left;vertical-align:top}
+  th{background:#1d2741} tr:nth-child(even) td{background:#131a2a}
+  blockquote{border-left:3px solid var(--acc);margin:1em 0;padding:.4em 1em;background:#131a2a;border-radius:0 8px 8px 0;color:var(--mut)}
+  main img{max-width:270px;border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.4);margin:10px 0}
+  hr{border:0;border-top:1px solid var(--line);margin:2em 0}
+</style>
+</head>
+<body>
+<nav class="sidebar">
+  <div class="brand">vbwd-android SDK</div>
+  <a href="index.html">Overview</a>
+  <a href="getting-started.html">Getting started</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="plugin-contract.html">Plugin contract</a>
+  <a href="writing-a-plugin.html">Writing a plugin</a>
+  <a href="consuming-the-sdk.html">Consuming the SDK</a>
+  <a href="host-app.html">Host app</a>
+  <a href="testing.html">Testing &amp; the gate</a>
+  <a href="meinchat-reference.html">MeinChat reference</a>
+  <a href="artifacts.html">Artifacts</a>
+</nav>
+<main>
+<h1 id="writing-a-plugin">Writing a plugin</h1>
+<p><a href="index.html">← Back to index</a></p>
+<p>This walks through a minimal plugin. The reference implementation is
+<code>vbwd-android-example</code> (<code>ExamplePlugin</code>), which
+exercises <strong>every</strong> seam — copy it when you start.</p>
+<h2 id="1-module-setup">1. Module setup</h2>
+<p>A plugin is an Android <strong>library</strong> module that depends
+on <code>:core</code> only.</p>
+<p><code>build.gradle.kts</code>:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>plugins <span class="op">{</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    alias<span class="op">(</span>libs<span class="op">.</span>plugins<span class="op">.</span>android<span class="op">.</span>library<span class="op">)</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    alias<span class="op">(</span>libs<span class="op">.</span>plugins<span class="op">.</span>kotlin<span class="op">.</span>android<span class="op">)</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    alias<span class="op">(</span>libs<span class="op">.</span>plugins<span class="op">.</span>kotlin<span class="op">.</span>compose<span class="op">)</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    alias<span class="op">(</span>libs<span class="op">.</span>plugins<span class="op">.</span>detekt<span class="op">)</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    alias<span class="op">(</span>libs<span class="op">.</span>plugins<span class="op">.</span>ktlint<span class="op">)</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    alias<span class="op">(</span>libs<span class="op">.</span>plugins<span class="op">.</span>android<span class="op">.</span>junit5<span class="op">)</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>android <span class="op">{</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    namespace <span class="op">=</span> <span class="st">&quot;com.vbwd.plugin.hello&quot;</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    compileSdk <span class="op">=</span> <span class="dv">36</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    defaultConfig <span class="op">{</span> minSdk <span class="op">=</span> <span class="dv">26</span> <span class="op">}</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    buildFeatures <span class="op">{</span> compose <span class="op">=</span> <span class="kw">true</span> <span class="op">}</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    compileOptions <span class="op">{</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>        sourceCompatibility <span class="op">=</span> JavaVersion<span class="op">.</span>VERSION_17</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>        targetCompatibility <span class="op">=</span> JavaVersion<span class="op">.</span>VERSION_17</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>    kotlinOptions <span class="op">{</span> jvmTarget <span class="op">=</span> <span class="st">&quot;17&quot;</span> <span class="op">}</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>dependencies <span class="op">{</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>    implementation<span class="op">(</span><span class="st">&quot;com.vbwd:vbwd-android-core:0.1.0&quot;</span><span class="op">)</span>  <span class="co">// :core ONLY</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>    implementation<span class="op">(</span>platform<span class="op">(</span>libs<span class="op">.</span>compose<span class="op">.</span>bom<span class="op">))</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>    implementation<span class="op">(</span>libs<span class="op">.</span>compose<span class="op">.</span>ui<span class="op">)</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>    implementation<span class="op">(</span>libs<span class="op">.</span>compose<span class="op">.</span>material3<span class="op">)</span></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>(To add publishing, mirror the <code>maven-publish</code> block from
+any plugin — see <a href="consuming-the-sdk.html">Consuming the
+SDK</a>.)</p>
+<h2 id="2-implement-plugin">2. Implement <code>Plugin</code></h2>
+<p>Keep the plugin class a <strong>thin composition root</strong>: it
+wires domain + UI that live in their own files (Single
+Responsibility).</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">package</span> <span class="im">com</span><span class="op">.</span><span class="im">vbwd</span><span class="op">.</span><span class="im">plugin</span><span class="op">.</span><span class="im">hello</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="im">androidx</span><span class="op">.</span><span class="im">compose</span><span class="op">.</span><span class="im">material3</span><span class="op">.</span><span class="im">Text</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="im">com</span><span class="op">.</span><span class="im">vbwd</span><span class="op">.</span><span class="im">core</span><span class="op">.</span><span class="im">events</span><span class="op">.</span><span class="im">AppEvents</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="im">com</span><span class="op">.</span><span class="im">vbwd</span><span class="op">.</span><span class="im">core</span><span class="op">.</span><span class="im">events</span><span class="op">.</span><span class="im">Unsubscribe</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="im">com</span><span class="op">.</span><span class="im">vbwd</span><span class="op">.</span><span class="im">core</span><span class="op">.</span><span class="im">plugins</span><span class="op">.*</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="im">com</span><span class="op">.</span><span class="im">vbwd</span><span class="op">.</span><span class="im">core</span><span class="op">.</span><span class="im">plugins</span><span class="op">.</span><span class="im">registries</span><span class="op">.</span><span class="im">MenuItem</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> HelloPlugin <span class="op">:</span> <span class="dt">Plugin</span> <span class="op">{</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">var</span> <span class="va">unsubscribe</span><span class="op">:</span> Unsubscribe<span class="op">?</span> <span class="op">=</span> <span class="kw">null</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">override</span> <span class="kw">val</span> <span class="va">metadata</span> <span class="op">=</span> PluginMetadata<span class="op">(</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>        name <span class="op">=</span> <span class="st">&quot;hello&quot;</span><span class="op">,</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>        version <span class="op">=</span> SemanticVersion<span class="op">(</span><span class="dv">1</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">0</span><span class="op">),</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>        description <span class="op">=</span> <span class="st">&quot;A minimal example plugin.&quot;</span><span class="op">,</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>        translations <span class="op">=</span> mapOf<span class="op">(</span><span class="st">&quot;en&quot;</span> to mapOf<span class="op">(</span><span class="st">&quot;hello.title&quot;</span> to <span class="st">&quot;Hello&quot;</span><span class="op">)),</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">)</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>    <span class="kw">override</span> suspend <span class="kw">fun</span> <span class="fu">install</span><span class="op">(</span><span class="va">sdk</span><span class="op">:</span> <span class="dt">PlatformSdk</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>        <span class="co">// a screen</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>        sdk<span class="op">.</span>addRoute<span class="op">(</span>PluginRoute<span class="op">(</span>path <span class="op">=</span> <span class="st">&quot;/hello&quot;</span><span class="op">,</span> name <span class="op">=</span> <span class="st">&quot;hello&quot;</span><span class="op">)</span> <span class="op">{</span> HelloScreen<span class="op">()</span> <span class="op">})</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>        <span class="co">// a dashboard widget + profile section (name-prefix convention)</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>        sdk<span class="op">.</span>addComponent<span class="op">(</span><span class="st">&quot;DashboardHello&quot;</span><span class="op">)</span> <span class="op">{</span> Text<span class="op">(</span><span class="st">&quot;Hello widget&quot;</span><span class="op">)</span> <span class="op">}</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>        sdk<span class="op">.</span>addComponent<span class="op">(</span><span class="st">&quot;ProfileHello&quot;</span><span class="op">)</span>   <span class="op">{</span> Text<span class="op">(</span><span class="st">&quot;Hello profile section&quot;</span><span class="op">)</span> <span class="op">}</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>        <span class="co">// i18n</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>        sdk<span class="op">.</span>addTranslations<span class="op">(</span><span class="st">&quot;de&quot;</span><span class="op">,</span> mapOf<span class="op">(</span><span class="st">&quot;hello.title&quot;</span> to <span class="st">&quot;Hallo&quot;</span><span class="op">))</span></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>        <span class="co">// side-menu entry</span></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>        sdk<span class="op">.</span>addMenuItem<span class="op">(</span></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>            MenuItem<span class="op">(</span>id <span class="op">=</span> <span class="st">&quot;hello&quot;</span><span class="op">,</span> icon <span class="op">=</span> <span class="st">&quot;star&quot;</span><span class="op">,</span> title <span class="op">=</span> <span class="st">&quot;Hello&quot;</span><span class="op">,</span></span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>                routePath <span class="op">=</span> <span class="st">&quot;/hello&quot;</span><span class="op">,</span> order <span class="op">=</span> <span class="dv">50</span><span class="op">,</span> section <span class="op">=</span> <span class="st">&quot;top&quot;</span><span class="op">),</span></span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>        <span class="op">)</span></span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>        <span class="co">// react to app events</span></span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a>        unsubscribe <span class="op">=</span> sdk<span class="op">.</span>events<span class="op">.</span>on<span class="op">(</span>AppEvents<span class="op">.</span>AUTH_LOGIN<span class="op">)</span> <span class="op">{</span> <span class="co">/* … */</span> <span class="op">}</span></span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a>        <span class="co">// call the backend through the injected client (DIP)</span></span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a>        runCatching <span class="op">{</span> sdk<span class="op">.</span>api<span class="op">.</span><span class="kw">get</span><span class="op">&lt;</span><span class="kw">Unit</span><span class="op">&gt;(</span><span class="st">&quot;/some/endpoint&quot;</span><span class="op">)</span> <span class="op">}</span></span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a>    <span class="kw">override</span> suspend <span class="kw">fun</span> <span class="fu">uninstall</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a>        unsubscribe<span class="op">?.</span>invoke<span class="op">()</span></span>
+<span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a>        unsubscribe <span class="op">=</span> <span class="kw">null</span></span>
+<span id="cb2-46"><a href="#cb2-46" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-47"><a href="#cb2-47" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="3-register-it-with-the-host">3. Register it with the host</h2>
+<p>In the host app's <code>di/CoreModule.kt</code>, add an instance to
+the available-plugins list, then enable it in
+<code>plugins.json</code>:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">fun</span> <span class="fu">provideAvailablePlugins</span><span class="op">(</span><span class="co">/* … */</span><span class="op">):</span> <span class="dt">List</span><span class="op">&lt;</span><span class="dt">Plugin</span><span class="op">&gt;</span> <span class="op">=</span> listOf<span class="op">(</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    ExamplePlugin<span class="op">(),</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    HelloPlugin<span class="op">(),</span>       <span class="co">// ← add</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">/* … */</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="op">)</span></span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span> <span class="dt">&quot;plugins&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;hello&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;enabled&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span> <span class="dt">&quot;version&quot;</span><span class="fu">:</span> <span class="st">&quot;1.0.0&quot;</span><span class="fu">,</span> <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="st">&quot;local&quot;</span> <span class="fu">}</span> <span class="fu">}</span> <span class="fu">}</span></span></code></pre></div>
+<p>See <a href="host-app.html">The host app</a> for the full wiring.</p>
+<h2 id="4-solid-checklist-what-reviewers-look-for">4. SOLID checklist
+(what reviewers look for)</h2>
+<ul>
+<li><strong>S</strong> — one responsibility per file; the plugin class
+only <em>wires</em>.</li>
+<li><strong>O</strong> — extend via <code>PlatformSdk</code> seams;
+never modify core.</li>
+<li><strong>L</strong> — your plugin honours the same
+<code>Plugin</code> contract as any other; a disabled plugin must not
+break callers.</li>
+<li><strong>I</strong> — depend on narrow ports (<code>ApiClient</code>,
+not a concrete HTTP client).</li>
+<li><strong>D</strong> — depend on abstractions injected via
+<code>sdk</code>, never on a concrete plugin.</li>
+</ul>
+<h2 id="5-test-it">5. Test it</h2>
+<p>Write a contract test that installs the plugin into a fake
+<code>PlatformSdk</code> and asserts your routes/components/menu items
+registered. For UI, use Robolectric Compose tests with
+<code>testTag</code>s. See <a href="testing.html">Testing &amp; the
+quality gate</a>.</p>
+<h2 id="common-patterns">Common patterns</h2>
+<ul>
+<li><strong>Domain via the API client</strong>:
+<code>sdk.api.get&lt;MyDto&gt;(path)</code> — suspend, throws
+<code>ApiError</code> on failure. Wrap broad catches with
+<code>currentCoroutineContext().ensureActive()</code> so cancellation
+propagates.</li>
+<li><strong>Shared state</strong>:
+<code>sdk.createStore("myStore", MyStore())</code> then read it where
+needed; or just hold it in your plugin instance.</li>
+<li><strong>Auth-gated screens</strong>:
+<code>PluginRoute(requiresAuth = true, requiredUserPermission = "x")</code>.</li>
+</ul>
+<hr />
+<p>Next: <a href="consuming-the-sdk.html">Consuming the SDK →</a></p>
+</main>
+</body>
+</html>

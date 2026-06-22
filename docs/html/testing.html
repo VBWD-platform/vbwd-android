@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Testing &amp; the quality gate · vbwd-android SDK</title>
+<style>
+  :root{--bg:#0f1320;--panel:#161c2d;--ink:#e7ebf3;--mut:#9aa6bf;--acc:#3b82f6;--code:#0b0f1a;--line:#26304a}
+  *{box-sizing:border-box}
+  body{margin:0;font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bg)}
+  .sidebar{position:fixed;top:0;left:0;width:250px;height:100vh;overflow:auto;background:var(--panel);border-right:1px solid var(--line);padding:22px 16px}
+  .sidebar .brand{font-weight:700;font-size:15px;letter-spacing:.02em;color:#fff;margin:0 8px 16px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+  .sidebar a{display:block;color:var(--mut);text-decoration:none;padding:7px 10px;border-radius:8px;font-size:14.5px}
+  .sidebar a:hover{background:#1d2741;color:var(--ink)}
+  main{margin-left:250px;max-width:860px;padding:42px 48px 80px}
+  h1,h2,h3{color:#fff;line-height:1.25;font-weight:680}
+  h1{font-size:30px;margin:.2em 0 .6em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h2{font-size:22px;margin:1.8em 0 .6em} h3{font-size:17px;margin:1.4em 0 .4em}
+  a{color:var(--acc)} a:hover{text-decoration:underline}
+  code{background:var(--code);border:1px solid var(--line);border-radius:5px;padding:.1em .4em;font:13.5px/1.5 "SF Mono",ui-monospace,Menlo,Consolas,monospace}
+  pre{background:var(--code);border:1px solid var(--line);border-radius:10px;padding:16px 18px;overflow:auto}
+  pre code{background:none;border:0;padding:0}
+  table{border-collapse:collapse;width:100%;margin:1em 0;font-size:14.5px}
+  th,td{border:1px solid var(--line);padding:8px 12px;text-align:left;vertical-align:top}
+  th{background:#1d2741} tr:nth-child(even) td{background:#131a2a}
+  blockquote{border-left:3px solid var(--acc);margin:1em 0;padding:.4em 1em;background:#131a2a;border-radius:0 8px 8px 0;color:var(--mut)}
+  main img{max-width:270px;border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.4);margin:10px 0}
+  hr{border:0;border-top:1px solid var(--line);margin:2em 0}
+</style>
+</head>
+<body>
+<nav class="sidebar">
+  <div class="brand">vbwd-android SDK</div>
+  <a href="index.html">Overview</a>
+  <a href="getting-started.html">Getting started</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="plugin-contract.html">Plugin contract</a>
+  <a href="writing-a-plugin.html">Writing a plugin</a>
+  <a href="consuming-the-sdk.html">Consuming the SDK</a>
+  <a href="host-app.html">Host app</a>
+  <a href="testing.html">Testing &amp; the gate</a>
+  <a href="meinchat-reference.html">MeinChat reference</a>
+  <a href="artifacts.html">Artifacts</a>
+</nav>
+<main>
+<h1 id="testing--the-quality-gate">Testing &amp; the quality gate</h1>
+<p><a href="index.html">← Back to index</a></p>
+<h2 id="the-gate-binpre-commit-checksh">The gate:
+<code>bin/pre-commit-check.sh</code></h2>
+<p>The Android port of the backend/iOS gate. Run it from the umbrella
+root; it maps the gate phases onto Gradle tasks across
+<strong>all</strong> modules (composite build) and auto-detects a JDK
+17.</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">bin/pre-commit-check.sh</span>                <span class="co"># quick: stylecheck + unit  (the iterate loop)</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">bin/pre-commit-check.sh</span> <span class="at">--full</span>         <span class="co"># + instrumented (integration / ux / e2e)</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="ex">bin/pre-commit-check.sh</span> <span class="at">--unit</span>         <span class="co"># unit tests only</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="ex">bin/pre-commit-check.sh</span> <span class="at">--lint</span>         <span class="co"># stylecheck only</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="ex">bin/pre-commit-check.sh</span> <span class="at">--integration</span>  <span class="co"># instrumented only (needs an emulator)</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="ex">bin/pre-commit-check.sh</span> <span class="at">--no-stylecheck</span> <span class="co"># drop the stylecheck phase</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="ex">bin/pre-commit-check.sh</span> <span class="at">--plugin</span> meinchat   <span class="co"># scope to one module</span></span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Gradle tasks</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>stylecheck</strong></td>
+<td><code>ktlintCheck</code> + <code>detekt</code> + Android
+<code>lintDebug</code> + <code>dependencyBoundaryCheck</code></td>
+</tr>
+<tr>
+<td><strong>unit</strong></td>
+<td><code>testDebugUnitTest</code></td>
+</tr>
+<tr>
+<td><strong>integration</strong> (= ux/e2e)</td>
+<td><code>connectedDebugAndroidTest</code> (instrumented — needs a
+device/emulator)</td>
+</tr>
+</tbody>
+</table>
+<p>A change is "done" only when the gate is green.</p>
+<h2 id="the-test-stack">The test stack</h2>
+<table>
+<thead>
+<tr>
+<th>Kind</th>
+<th>Tools</th>
+<th>Runs on</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pure-logic unit</td>
+<td>JUnit5 + MockK + Turbine + kotlinx-coroutines-test</td>
+<td>JVM (fast)</td>
+</tr>
+<tr>
+<td>Android-coupled unit</td>
+<td>+ Robolectric</td>
+<td>JVM (Robolectric)</td>
+</tr>
+<tr>
+<td>Compose UI</td>
+<td><code>compose.ui.test</code> + Robolectric</td>
+<td>JVM (Robolectric)</td>
+</tr>
+<tr>
+<td>Screenshot</td>
+<td>Roborazzi (record with
+<code>-Proborazzi.test.record=true</code>)</td>
+<td>JVM</td>
+</tr>
+<tr>
+<td>Instrumented</td>
+<td><code>androidx.test</code></td>
+<td>device/emulator</td>
+</tr>
+</tbody>
+</table>
+<h2 id="style-rules-that-bite">Style rules that bite</h2>
+<p>The detekt ruleset is the strict default plus a few documented deltas
+(<code>config/detekt/detekt.yml</code>). Common ones:</p>
+<ul>
+<li><strong>No magic numbers</strong> — extract <code>dp</code>/alpha
+values to <code>private val</code> tokens.</li>
+<li><strong><code>MaxLineLength</code> 120</strong> — wrap long lines
+(ktlint enforces it too).</li>
+<li><strong><code>ReturnCount</code> ≤ 2 / <code>ThrowsCount</code> ≤
+2</strong> — restructure to fewer returns/throws.</li>
+<li><strong>Cancellation-safe catches</strong> — don't
+<code>if (e is CancellationException) throw e</code> (that trips
+<code>InstanceOfCheckForException</code>); use
+<code>currentCoroutineContext().ensureActive()</code> instead.</li>
+<li><strong>Compose functions are PascalCase</strong> — allowed via
+config.</li>
+</ul>
+<h2 id="writing-a-compose-ui-test">Writing a Compose UI test</h2>
+<p>Drive a screen with a fake service and assert on
+<code>testTag</code>s:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="at">@RunWith</span><span class="op">(</span>AndroidJUnit4<span class="op">::</span><span class="kw">class</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>@GraphicsMode<span class="op">(</span><span class="va">GraphicsMode</span>.<span class="va">Mode</span>.<span class="va">NATIVE</span><span class="op">)</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>@Config<span class="op">(</span><span class="va">qualifiers</span> <span class="op">=</span> RobolectricDeviceQualifiers<span class="op">.</span>Pixel5<span class="op">)</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> MeinChatScreenTest <span class="op">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">@get</span><span class="op">:</span><span class="at">Rule</span> <span class="kw">val</span> <span class="va">rule</span> <span class="op">=</span> createComposeRule<span class="op">()</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Test</span> <span class="kw">fun</span> `<span class="fu">inbox</span> <span class="fu">shows</span> <span class="fu">tabs</span> <span class="fu">and</span> <span class="fu">the</span> <span class="fu">new</span>-<span class="fu">chat</span> <span class="fu">entry</span>`<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>        rule<span class="op">.</span>setContent <span class="op">{</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>            MeinChatScreen<span class="op">(</span><span class="co">/* view models backed by FakeMeinChatService */</span><span class="op">)</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>        rule<span class="op">.</span>onNodeWithTag<span class="op">(</span><span class="st">&quot;meinchat_tab_chats&quot;</span><span class="op">).</span>assertExists<span class="op">()</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>        rule<span class="op">.</span>onNodeWithTag<span class="op">(</span><span class="st">&quot;meinchat_new_chat_button&quot;</span><span class="op">).</span>assertExists<span class="op">()</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Give your composables stable <code>testTag</code>s (the meinchat
+plugin tags its inbox, conversation, tabs, input, send button, etc.) so
+tests — and screenshot tooling — can target them.</p>
+<h2 id="ci">CI</h2>
+<p><code>.github/workflows/android-ci.yml</code> runs
+<code>./gradlew check</code> + <code>dependencyBoundaryCheck</code> on
+every push/PR. <code>publish.yml</code> publishes on a <code>v*</code>
+tag (see <a href="consuming-the-sdk.html">Consuming the SDK</a>).</p>
+<hr />
+<p>Next: <a href="meinchat-reference.html">MeinChat reference →</a></p>
+</main>
+</body>
+</html>
