@@ -1,0 +1,30 @@
+[submodule "core"]
+	path = core
+	url = https://github.com/vbwd-platform/vbwd-android-core.git
+[submodule "plugins/example"]
+	path = plugins/example
+	url = https://github.com/vbwd-platform/vbwd-android-example.git
+[submodule "plugins/subscription"]
+	path = plugins/subscription
+	url = https://github.com/vbwd-platform/vbwd-android-subscription.git
+[submodule "plugins/token-payment"]
+	path = plugins/token-payment
+	url = https://github.com/vbwd-platform/vbwd-android-token-payment.git
+[submodule "plugins/stripe"]
+	path = plugins/stripe
+	url = https://github.com/vbwd-platform/vbwd-android-stripe.git
+[submodule "plugins/invoice"]
+	path = plugins/invoice
+	url = https://github.com/vbwd-platform/vbwd-android-invoice.git
+[submodule "plugins/cms"]
+	path = plugins/cms
+	url = https://github.com/vbwd-platform/vbwd-android-cms.git
+[submodule "plugins/tarot"]
+	path = plugins/tarot
+	url = https://github.com/vbwd-platform/vbwd-android-tarot.git
+[submodule "plugins/meinchat"]
+	path = plugins/meinchat
+	url = https://github.com/vbwd-platform/vbwd-android-meinchat.git
+[submodule "plugins/meinchat-plus"]
+	path = plugins/meinchat-plus
+	url = https://github.com/vbwd-platform/vbwd-android-meinchat-plus.git

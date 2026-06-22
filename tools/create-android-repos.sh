@@ -13,7 +13,7 @@
 # Requires: gh (authed), git. Set OWNER below.
 set -euo pipefail
 
-OWNER="dantweb"
+OWNER="vbwd-platform"
 GROUP="com.vbwd"
 MONO="$(cd "$(dirname "$0")/.." && pwd)"
 OUT="${1:-$MONO/../vbwd-android-repos}"
@@ -34,7 +34,7 @@ plugins/cms|vbwd-android-cms|vbwd-android-cms|0.1.0|vbwd-android-core
 plugins/tarot|vbwd-android-tarot|vbwd-android-tarot|0.1.0|vbwd-android-core
 plugins/meinchat|vbwd-android-meinchat|vbwd-android-meinchat|1.1.0|vbwd-android-core
 plugins/meinchat-plus|vbwd-android-meinchat-plus|vbwd-android-meinchat-plus|0.2.0|vbwd-android-core vbwd-android-meinchat
-app|vbwd-android-template|||vbwd-android-core vbwd-android-example vbwd-android-subscription vbwd-android-token-payment vbwd-android-stripe vbwd-android-invoice vbwd-android-cms vbwd-android-tarot vbwd-android-meinchat vbwd-android-meinchat-plus
+app|vbwd-android-app-example|||vbwd-android-core vbwd-android-example vbwd-android-subscription vbwd-android-token-payment vbwd-android-stripe vbwd-android-invoice vbwd-android-cms vbwd-android-tarot vbwd-android-meinchat vbwd-android-meinchat-plus
 EOF
 )
 

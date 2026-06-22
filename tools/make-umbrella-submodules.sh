@@ -12,7 +12,7 @@
 # submodules). Commit/branch first.
 set -euo pipefail
 
-OWNER="dantweb"
+OWNER="vbwd-platform"
 GROUP="com.vbwd"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"

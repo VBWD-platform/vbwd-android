@@ -46,18 +46,18 @@ android {
 }
 
 dependencies {
-    implementation(project(":core"))
+    implementation("com.vbwd:vbwd-android-core:0.1.0")
     // Compiled-in plugins the host bundles (the available-plugins list). A02
     // ships the reference example; further plugins are added per sprint.
-    implementation(project(":plugins:example"))
-    implementation(project(":plugins:subscription"))
-    implementation(project(":plugins:token-payment"))
-    implementation(project(":plugins:stripe"))
-    implementation(project(":plugins:invoice"))
-    implementation(project(":plugins:cms"))
-    implementation(project(":plugins:tarot"))
-    implementation(project(":plugins:meinchat"))
-    implementation(project(":plugins:meinchat-plus"))
+    implementation("com.vbwd:vbwd-android-example:1.0.0")
+    implementation("com.vbwd:vbwd-android-subscription:1.0.0")
+    implementation("com.vbwd:vbwd-android-token-payment:1.0.0")
+    implementation("com.vbwd:vbwd-android-stripe:1.0.0")
+    implementation("com.vbwd:vbwd-android-invoice:1.0.0")
+    implementation("com.vbwd:vbwd-android-cms:0.1.0")
+    implementation("com.vbwd:vbwd-android-tarot:0.1.0")
+    implementation("com.vbwd:vbwd-android-meinchat:1.1.0")
+    implementation("com.vbwd:vbwd-android-meinchat-plus:0.2.0")
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
