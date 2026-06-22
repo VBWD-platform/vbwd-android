@@ -1,0 +1,68 @@
+name: release
+
+# Build a signed APK + AAB on a v* tag and attach them to a GitHub Release.
+# The umbrella is a composite build, so core + all plugin submodules build from
+# source (no GitHub Packages token needed) — just check out submodules.
+#
+# Required repo/org secrets:
+#   RELEASE_KEYSTORE_BASE64  – base64 of the release .jks
+#                              (base64 -i vbwd-android-release.jks | pbcopy)
+#   RELEASE_STORE_PASSWORD   – keystore password
+#   RELEASE_KEY_ALIAS        – key alias (e.g. vbwd)
+#   RELEASE_KEY_PASSWORD     – key password
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write   # attach artifacts to the GitHub Release
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Prepare signing
+        env:
+          KEYSTORE_B64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          echo "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/release.jks"
+          {
+            echo "storeFile=$RUNNER_TEMP/release.jks"
+            echo "storePassword=$STORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > keystore.properties
+
+      - name: Build signed APK + AAB
+        run: ./gradlew :app:assembleRelease :app:bundleRelease --no-configuration-cache
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: vbwd-android-release
+          path: |
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/bundle/release/*.aab
+          if-no-files-found: error
+
+      - name: Attach to the GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/bundle/release/*.aab
